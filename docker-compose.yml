@@ -1,0 +1,52 @@
+version: '2'
+
+services:
+  drone-server:
+    image: drone/drone:1.9                  
+    container_name: drone-server
+    restart: always
+    ports:
+      - 9090:80                             
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/drone:/data
+    environment:
+      #https://github.com/go-training/drone-tutorial/issues/3
+      #DRONE_AGENTS_ENABLED as true if you want to run server and agent in the same container
+      - DRONE_AGENTS_ENABLED=true
+      - DRONE_GITHUB_CLIENT_ID=${DRONE_GITHUB_CLIENT_ID}
+      - DRONE_GITHUB_CLIENT_SECRET=${DRONE_GITHUB_CLIENT_SECRET}
+      - DRONE_S3_ENDPOINT=${DRONE_S3_ENDPOINT}
+      - DRONE_S3_BUCKET=${DRONE_S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_REGION=${AWS_REGION}
+      - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+      - DRONE_SERVER_HOST=${DRONE_SERVER_HOST}
+      - DRONE_SERVER_PROTO=${DRONE_SERVER_PROTO}
+    networks:
+      - ci_Network
+
+  drone-runner:
+    image: drone/drone-runner-docker:1.5.1
+    container_name: drone-runner
+    restart: always
+    ports:
+      - 3000:3000
+    depends_on:
+      - drone-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DRONE_RPC_PROTO=${DRONE_SERVER_PROTO}
+      - DRONE_RPC_HOST=${DRONE_SERVER_HOST}
+      - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}        
+      - DRONE_RUNNER_CAPACITY=2
+      - DRONE_RUNNER_NAME=${DRONE_RUNNER_NAME}
+    networks:
+      - ci_Network
+
+networks:
+  ci_Network:
+    name: ci_Network
